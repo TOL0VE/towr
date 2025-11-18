@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "ROS: Launch",
+            "name": "ROS: Attach",
             "type": "ros",
-            "request": "launch",
-            "target": "/home/noix/towr_project/src/towr/towr_ros/launch/towr_ros.launch",
+            "request": "attach"
         }
+
 
     ]
 }
