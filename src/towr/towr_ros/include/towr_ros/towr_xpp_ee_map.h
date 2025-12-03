@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef TOWR_TOWR_ROS_INCLUDE_TOWR_ROS_TOWR_XPP_EE_MAP_H_
 #define TOWR_TOWR_ROS_INCLUDE_TOWR_ROS_TOWR_XPP_EE_MAP_H_
 
+#include "towr/variables/state.h"
+#include "xpp_states/endeffectors.h"
 #include <map>
 #include <towr/models/endeffector_mappings.h>
 #include <xpp_states/endeffector_mappings.h>
