@@ -1,0 +1,21 @@
+{
+    "clangd.arguments": [
+        "--background-index",
+        "--compile-commands-dir=/home/noix/towr_project/build_isolated/towr_ros",
+        "--query-driver=/usr/bin/g++,/usr/bin/gcc",
+        "--header-insertion=never"
+    ],
+    "python.autoComplete.extraPaths": [
+        "/home/noix/towr_project/devel_isolated/towr_ros/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/noix/towr_project/devel_isolated/towr_ros/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "terminal.integrated.env.linux": {
+        "ROS_PACKAGE_PATH": "/home/noix/towr_project/src:/opt/ros/melodic/share",
+        "ROS_DISTRO": "melodic",
+        "CMAKE_PREFIX_PATH": "/home/noix/towr_project/devel_isolated/towr_ros:/opt/ros/melodic"
+    }
+}

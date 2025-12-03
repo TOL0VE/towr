@@ -1,0 +1,8 @@
+CompileFlags:
+  Add: 
+    - -I/opt/ros/melodic/include
+    - -I/home/noix/towr_project/devel_isolated/towr_ros/include
+    - -I/home/noix/towr_project/devel_isolated/towr/include
+    - -I/home/noix/towr_project/devel_isolated/ifopt/include
+    - -I/home/noix/towr_project/src/towr/towr_ros/include
+  CompilationDatabase: build_isolated/towr_ros
