@@ -4,7 +4,7 @@
 
 ### 🧩 1. `RobotModel` (模型构建)
 
-**代码行：**
+#### 1.1 **生成模型**
 ```cpp
 formulation_.model_ = RobotModel(static_cast<RobotModel::Robot>(msg.robot));
 ````
@@ -16,7 +16,7 @@ formulation_.model_ = RobotModel(static_cast<RobotModel::Robot>(msg.robot));
 -----
 >eg:src/towr/towr/include/towr/models/examples/biped_model.h
 
-#### 🦵 1.1 运动学模型 (`xxxKinematicModel`)
+##### 🦵 1.1.1 运动学模型 (`xxxKinematicModel`)
 
 *继承自 `KinematicModel`，定义“身材”与“活动范围”。*
 
@@ -60,7 +60,7 @@ formulation_.model_ = RobotModel(static_cast<RobotModel::Robot>(msg.robot));
 
 -----
 
-#### ⚖️ 1.2 动力学模型 (`xxxDynamicModel`)
+##### ⚖️ 1.1.2 动力学模型 (`xxxDynamicModel`)
 
 *继承自 `SingleRigidBodyDynamics`，定义“体重”与“体质”。*
 
@@ -95,3 +95,498 @@ formulation_.model_ = RobotModel(static_cast<RobotModel::Robot>(msg.robot));
       * **作用**：再次确认腿部数量，用于接触力变量初始化。
 
 -----
+#### 1.2**发布机器人参数消息构建**
+
+```cpp
+  auto robot_params_msg = BuildRobotParametersMsg(formulation_.model_);
+  robot_parameters_pub_.publish(robot_params_msg);
+````
+##### 1.2.1 xpp_msgs::RobotParameters
+```cpp
+# Parameters used to generate this optimization/trajectory
+# Should basically save class xpp::OptimizationParameters
+
+# endeffector names (order of endeffectors, e.g. LF, RF, LH, RH)
+string[] ee_names  # 腿的名字
+
+geometry_msgs/Point[]   nominal_ee_pos    # 初始状态下腿的位置
+geometry_msgs/Vector3   ee_max_dev        # 最大活动范围
+
+float64                 base_mass         # 重量 (for plotting gravity force)             
+````
+>可以看出来BuildRobotParametersMsg已经全是调用RobotModel的参数，这些参数只要在KinematicModel和SingleRigidBodyDynamics定义好就不用管
+
+>💡到现在看懂了定义一个模型需要写一个models/robot_model.h与examples/biped_model.h.
+
+### 🧩 2. `terrain` (地形构建)
+
+#### 2.1 **生成地形**
+```cpp
+  auto terrain_id = static_cast<HeightMap::TerrainID>(msg.terrain);
+  formulation_.terrain_ = HeightMap::MakeTerrain(terrain_id);
+````
+```cpp
+HeightMap::MakeTerrain (TerrainID type)
+{
+  switch (type) {
+    case FlatID:      return std::make_shared<FlatGround>(); break;
+    case BlockID:     return std::make_shared<Block>(); break;
+    case StairsID:    return std::make_shared<Stairs>(); break;
+    case GapID:       return std::make_shared<Gap>(); break;
+    case SlopeID:     return std::make_shared<Slope>(); break;
+    case ChimneyID:   return std::make_shared<Chimney>(); break;
+    case ChimneyLRID: return std::make_shared<ChimneyLR>(); break;
+    default: assert(false); break;
+  }
+}
+````
+
+>随便解析一个吧，看看ChimneyLR
+
+>发现只有两个关键点，一个是记录每个地方的高度
+```cpp
+class ChimneyLR : public HeightMap {
+public:
+  double GetHeight(double x, double y) const override;
+  double GetHeightDerivWrtY(double x, double y) const override;
+
+private:
+  const double x_start_ = 0.5;
+  const double length_  = 1.0;
+  const double y_start_ = 0.5; // 世界坐标y=5的位置z为0 
+  const double slope_   = 2;
+
+  const double x_end1_ = x_start_+length_;
+  const double x_end2_ = x_start_+2*length_;
+};
+```
+>还有就是获取高度
+```cpp
+double
+// Chimney LR
+double
+ChimneyLR::GetHeight (double x, double y) const
+{
+  double z = 0.0;
+
+  if (x_start_<=x && x<=x_end1_)
+    z = slope_*(y-y_start_);
+
+  if (x_end1_<=x && x<=x_end2_)
+    z = -slope_*(y+y_start_);
+
+  return z;
+}
+
+double
+ChimneyLR::GetHeightDerivWrtY (double x, double y) const
+{
+  double dzdy = 0.0;
+
+  if (x_start_ <= x && x <= x_end1_)
+    dzdy = slope_;
+
+  if (x_end1_<=x && x<=x_end2_)
+    dzdy = -slope_;
+
+  return dzdy;
+}
+
+```
+
+>这里是怎么构建地形的
+ ```
+  X 轴 (前进方向) --->
+Start (0.0)      x_start_(0.5)      x_end1_(1.5)       x_end2_(2.5)
+|----------------|------------------|------------------|----------------|
+|    平地阶段    |   阶段 A (左倾)  |   阶段 B (右倾)  |    平地阶段    |
+|    Flat        |   Slope = +2     |   Slope = -2     |    Flat        |
+|----------------|------------------|------------------|----------------|
+```
+
+### 3. `Configuration` (参数与目标配置)
+
+**代码片段：**
+```cpp
+int n_ee = formulation_.model_.kinematic_model_->GetNumberOfEndeffectors();
+formulation_.params_ = GetTowrParameters(n_ee, msg);
+formulation_.final_base_ = GetGoalState(msg);
+```
+
+#### ⏱️ 3.1 `GetTowrParameters` (步态与时序逻辑)
+*这是一个虚函数，实际执行的是 `TowrRosApp` 中的重写版本。*
+
+**代码核心逻辑：**
+```cpp
+// 1. 创建步态生成器工厂
+auto gait_gen_ = GaitGenerator::MakeGaitGenerator(n_ee);
+
+// 2. 设置步态类型 (Walk, Trot, Pace...)
+auto id_gait = static_cast<GaitGenerator::Combos>(msg.gait);
+gait_gen_->SetCombo(id_gait);
+
+// 3. 为每一条腿生成相位时间表
+for (int ee=0; ee<n_ee; ++ee) {
+  params.ee_phase_durations_.push_back(gait_gen_->GetPhaseDurations(msg.total_duration, ee));
+  params.ee_in_contact_at_start_.push_back(gait_gen_->IsInContactAtStart(ee));
+}
+````
+
+**逻辑深度解析：**
+
+1.  **工厂模式 (`MakeGaitGenerator`)**：根据腿的数量（`n_ee`），自动决定是创建四足生成器还是双足生成器。
+2.  **翻译过程**：
+      * **输入**：用户只给了一个简单的枚举值 `msg.gait` (例如 `Trot`) 和总时间 `total_duration`。
+      * **输出**：代码将其展开为每条腿的**详细时间表**。
+      * *例如 Trot (四足小跑)*：它会生成类似“左前腿和右后腿同时着地，另外两对同时腾空”的交替序列。
+3.  **相位优化 (`OptimizePhaseDurations`)**：
+    ```cpp
+    if (msg.optimize_phase_durations)
+      params.OptimizePhaseDurations();
+    ```
+    如果开启此开关，刚才生成的“接触/腾空时间”就变成了**变量**。求解器可以微调这些时间（比如把这一步迈得慢一点，下一步快一点）来适应地形。如果不开启，时间就是写死的固定值。
+
+> **🔍 调试观察 (Step-by-Step)：**
+>
+>   * **`id_gait`**: 检查枚举值。`0`=Stand, `1`=Walk, `2`=Trot, `3`=Pace 等（需对照 `GaitGenerator` 头文件）。
+>   * **`ee_phase_durations_`**: 这是一个 `vector<vector<double>>`。
+>       * 按 `p params.ee_phase_durations_` 查看。
+>       * *预期*：如果是 `Trot`，你应该看到第 0 条腿和第 3 条腿的时间序列是一样的，而第 1 和 第 2 条腿是错开的。
+>       * *值*：例如 `[0.3, 0.4, 0.3]` 表示：接触 0.3s -\> 摆动 0.4s -\> 接触 0.3s。
+>   * **`ee_in_contact_at_start_`**: 决定了机器人的初始姿态（是四脚着地开始，还是抬着腿开始）。
+
+-----
+
+#### 🎯 3.2 `GetGoalState` (目标状态解析)
+
+*执行的是 `TowrRosInterface` 中的基类方法。*
+
+**代码核心逻辑：**
+
+```cpp
+BaseState goal;
+// 将 ROS 消息 (geometry_msgs) 转换为 XPP/Eigen 类型
+goal.lin.at(kPos) = xpp::Convert::ToXpp(msg.goal_lin.pos);
+goal.lin.at(kVel) = xpp::Convert::ToXpp(msg.goal_lin.vel);
+goal.ang.at(kPos) = xpp::Convert::ToXpp(msg.goal_ang.pos);
+goal.ang.at(kVel) = xpp::Convert::ToXpp(msg.goal_ang.vel);
+return goal;
+```
+
+**逻辑解析：**
+
+  * **坐标转换**：`xpp::Convert::ToXpp` 负责把 ROS 的 `geometry_msgs::Point/Vector3` 数据搬运到 TOWR 内部使用的 `Eigen::Vector3d` 格式中。
+  * **6D 状态**：它不仅设置了**位置 (lin)**，还设置了**角度 (ang)**，以及它们对应的**速度 (Vel)**。这意味着你可以指定机器人“以 1m/s 的速度冲过终点线”。
+
+> **🔍 调试观察：**
+>
+>   * **`msg.goal_lin.pos`**: 确认目标点是否在合理范围内。
+>       * *检查 Z 轴*：如果 `z` 值设置得离地面太远（例如地形高 0m，目标设在 0.2m，但机器人腿长只有 0.6m），求解器可能会因为够不着而报错。
+>   * **`msg.goal_ang.vel`**: 通常为了稳定，终点角速度都设为 0。如果这里有非零值，机器人可能会在终点处“旋转着停下来”。
+
+-----
+### 4. `Initialization` (设置起始状态)
+
+#### 🏁 4.1 `SetTowrInitialState` (起始姿态校准)
+*这是一个虚函数，在 `TowrRosApp` 中重写。*
+
+**代码核心逻辑：**
+```cpp
+// 1. 获取名义姿态 (相对于基座 B)
+auto nominal_stance_B = formulation_.model_.kinematic_model_->GetNominalStanceInBase();
+
+// 2. 强制把所有脚按在地面上 (World Frame Z = 0)
+double z_ground = 0.0;
+formulation_.initial_ee_W_ =  nominal_stance_B; // 先复制相对位置
+std::for_each(formulation_.initial_ee_W_.begin(), formulation_.initial_ee_W_.end(),
+              [&](Vector3d& p){ p.z() = z_ground; } 
+);//具体要执行的代码。把当前点 `p` 的 Z 坐标改成 `z_ground` (0.0)。
+
+// 3. 根据腿长反推基座(Base)的高度
+formulation_.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
+````
+
+**逻辑深度解析：**
+
+1.  **获取“舒适姿势”**：
+      * `nominal_stance_B` 拿到了我们在 `RobotModel` 里定义的参数（比如腿长 0.65m）。此时坐标是相对于身体中心的（例如 $z = -0.65$）。
+2.  **足端落地 (Feet on Ground)**：
+      * 代码通过 `std::for_each` 遍历所有足端。
+      * 强行将所有足端的 $Z$ 坐标设为 `0.0`。这意味着**假设机器人起始于绝对平坦的地面**。
+3.  **拔高身体 (Body Height)**：
+      * **数学公式**：$H_{base} = -(-0.65) + 0.0 = 0.65m$。
+      * **含义**：既然脚在 $z=0$，且脚应该在身体下方 $0.65m$ 处，那么身体就应该在 $z=0.65$ 处。
+      * *注*：这里使用了 `nominal_stance_B.front()`（第0条腿）作为参考标准来计算身高。
+
+> **🔍 调试观察与隐患：**
+>
+>   * **平地假设**：这里硬编码了 `z_ground = 0.0`。
+>       * *风险*：如果我让机器人从一个台阶上 ($z=0.5$) 开始走，这段代码会把机器人的脚强行按到 $z=0$，导致初始状态极其怪异（像拉面一样被拉长），优化器会立刻报错 `Infeasible`。
+>   * **初始位置**：这段代码只设置了高度 ($z$)。机器人的水平位置 ($x, y$) 和朝向 (Yaw) 默认是 0（除非在其他地方设置了 `initial_base_` 的其他分量）。
+
+-----
+### 5. `Solver Configuration` (求解器配置)
+
+#### ⚙️ 5.1 `SetIpoptParameters` (配置 IPOPT)
+*这是一个虚函数，在 `TowrRosApp` 中重写。*
+
+**代码核心逻辑：**
+```cpp
+// 1. 选择线性求解器 (Linear Solver)
+solver_->SetOption("linear_solver", "mumps"); // 免费开源，但比 MA27/MA57 慢
+
+// 2. 设置导数计算方式 (Derivatives)
+solver_->SetOption("jacobian_approximation", "exact"); // 使用解析导数(快)
+
+// 3. 设置资源限制
+solver_->SetOption("max_cpu_time", 40.0); // 算40秒算不出来就放弃
+solver_->SetOption("print_level", 5);     // 打印详细程度 (0-12)
+
+// 4. 初始化模式 vs 优化模式
+if (msg.play_initialization)
+  solver_->SetOption("max_iter", 0);    // 迭代0次 = 只看初值，不优化
+else
+  solver_->SetOption("max_iter", 3000); // 正常优化，最多跑3000轮
+````
+
+**关键参数深度解析：**
+
+1.  **`linear_solver` = "mumps"**
+
+      * **含义**：这是求解大型稀疏矩阵的核心算法库。
+      * **背景**：代码注释提到 `ma27`, `ma57` (来自 HSL 库) 会快很多，但那是收费或需要学术许可的。`mumps` 是免费通用的默认选择。
+
+2.  **`jacobian_approximation` = "exact"**
+
+      * **含义**：**非常关键！** 这告诉 IPOPT：“别自己瞎猜导数，我会直接给你精确的公式”。
+      * **解析导数 (Exact)**：TOWR 库推导了物理公式的数学导数，计算极快。
+      * **有限差分 (Finite Difference)**：如果设为这个，求解器会尝试稍微移动每一个变量来估算斜率，对于这种复杂机器人问题，速度会慢几百倍甚至几千倍。
+
+3.  **`max_iter` (初始化黑魔法)**
+
+      * **逻辑**：
+          * **`0` 次迭代**：如果你在 ROS 界面点了 "Play Initialization"，这里会被设为 0。求解器构建完问题立刻停止。
+          * **作用**：这让你能在 Rviz 里看到\*\*“优化前的初始猜测”\*\*（比如机器人四脚悬空的样子），用于检查初始状态设置得对不对。
+          * **`3000` 次迭代**：正常的运行模式。
+
+> **🔍 调试观察：**
+>
+>   * **如果求解器瞬间结束**：检查 `msg.play_initialization` 是否误触为 `true`。此时你会看到 `EXIT: Maximum Number of Iterations Exceeded` 但迭代数是 0。
+>   * **如果求解巨慢**：看终端输出。如果是 `MUMPS`，正常；如果是 `Finite Difference`，绝对配置错了。
+>   * **`print_level`**: 设为 5 时，终端会疯狂刷屏每一轮的 `Objective Value`（目标函数值）。如果这个值在不断变小，说明优化正在起作用；如果卡住不动，说明掉进局部最优了。
+
+-----
+### 6. `Visualization` (初始状态可视化)
+
+#### 👁️ 6.1 `PublishInitialState` (发布初始画面)
+*这一步不参与计算，纯粹为了给人看。*
+
+**代码核心逻辑：**
+```cpp
+TowrRosInterface::PublishInitialState()
+  {
+  int n_ee = formulation_.initial_ee_W_.size();
+
+  // 1. 创建 XPP 状态对象 (中间格式)
+  xpp::RobotStateCartesian xpp(n_ee);
+
+  // 2. 填充基座状态 (Base)
+  xpp.base_.lin.p_ = formulation_.initial_base_.lin.p(); // 位置 (x,y,z)
+  // 关键：将欧拉角 (Roll,Pitch,Yaw) 转换为四元数 (Quaternion)
+  xpp.base_.ang.q  = EulerConverter::GetQuaternionBaseToWorld(formulation_.initial_base_.ang.p());
+
+  // 3. 填充足端状态 (Feet)
+  for (int ee_towr=0; ee_towr<n_ee; ++ee_towr) {
+    // 再次使用那个映射函数，这次取 .first (ID)
+    int ee_xpp = ToXppEndeffector(n_ee, ee_towr).first;
+    
+    xpp.ee_contact_.at(ee_xpp)   = true; // 假设初始全是接触状态
+    xpp.ee_motion_.at(ee_xpp).p_ = formulation_.initial_ee_W_.at(ee_towr); // 填入刚才被强制设为 0 的坐标
+    xpp.ee_forces_.at(ee_xpp).setZero(); // 初始没受力，设为0
+  }
+
+  
+// 4. 发送给 ROS
+initial_state_pub_.publish(xpp::Convert::ToRos(xpp));
+}
+```
+**逻辑深度解析：**
+
+1.  **数据桥接 (`xpp::RobotStateCartesian`)**：
+
+      * TOWR 内部用的是分散的变量（基座、地形、力）。
+      * ROS (Rviz) 只能听懂标准的机器人状态消息。
+      * `xpp` 对象充当了翻译官。
+
+2.  **旋转表示的转换 (`EulerConverter`)**：
+
+      * **TOWR 内部**：喜欢用欧拉角 (Euler Angles)，因为只有 3 个变量，优化起来快。
+      * **ROS/Rviz**：强制使用四元数 (Quaternion, xyzw)，因为不会出现万向节死锁。
+      * 这里必须做一次数学转换。
+
+3.  **ID 映射的回扣 (`ToXppEndeffector`)**：
+
+      * 还记得之前的 `pair.first` 吗？这里用到了！
+      * 它确保了 TOWR 里的“第0条腿”正确地对应到了 XPP 消息里的“左前腿 (LF)”。
+
+> **🔍 调试观察：**
+>
+>   * **Rviz 里的“幽灵”**：运行到这一步时，你应该能在 Rviz 里看到一个静止的机器人模型（通常是半透明的或者特定颜色的，代表 `goal` 或 `initial`）。
+>   * **检查点**：
+>       * 它的脚是不是刚好切在网格平面 ($z=0$) 上？（验证 `SetTowrInitialState` 是否生效）。
+>       * 它的头是不是朝向正确的方向？（验证 `EulerConverter` 是否正确）。
+>       * 如果模型是歪的、倒的或者脚在头顶上，问题肯定出在 `formulation_.initial_base_` 的赋值上。
+
+-----
+
+
+### 📂 `Data Structure` (数据结构定义)
+
+#### 📸 `RobotStateCartesian` (机器人笛卡尔状态帧)
+*定义文件：`xpp_msgs/msg/RobotStateCartesian.msg`*
+
+**核心概念：**
+这是一个“快照” (Snapshot)。它包含了一个浮基机器人在 $t$ 时刻的所有运动学和动力学信息。
+
+**字段逐行解析：**
+
+1.  **`duration time_from_start`**
+    * **含义**：**时间戳**。
+    * **作用**：表示这一帧发生在轨迹开始后的第几秒（例如 $t=1.5s$）。播放轨迹时，ROS 会根据这个时间来决定播放速度。
+
+2.  **`State6d base`**
+    * **含义**：**基座（躯干）的 6自由度状态**。
+    * **内容**：
+        * **位置 (Linear)**: $x, y, z$ 以及 速度($\dot{x}$)、加速度($\ddot{x}$)。
+        * **旋转 (Angular)**: 四元数 (Quaternion) 以及 角速度($\omega$)、角加速度($\dot{\omega}$)。
+    * **物理意义**：决定了机器人的身体在哪里，以及它是怎么动、怎么转的。
+
+3.  **`StateLin3d[] ee_motion`**
+    * **含义**：**足端（末端执行器）的运动状态数组**。
+    * **类型**：数组 `[]`，长度等于腿的数量 (2 或 4)。
+    * **内容**：每只脚在世界坐标系下的位置 ($x,y,z$)、速度、加速度。
+    * **注意**：如果是支撑相，速度通常为 0；如果是摆动相，这里就是摆动轨迹。
+
+4.  **`geometry_msgs/Vector3[] ee_forces`**
+    * **含义**：**足端接触力 (GRF)**。
+    * **物理意义**：地面给脚的反作用力。
+    * **可视化**：在 Rviz 里，这个数据通常被画成红色的箭头。箭头越长，力越大。
+    * **TOWR 的核心**：这正是优化器算出来的关键结果——为了不摔倒，脚必须用多大的力蹬地。
+
+5.  **`bool[] ee_contact`**
+    * **含义**：**接触标志位**。
+    * **值**：`true` = 踩在地上 (Stance)；`false` = 腾空 (Swing)。
+    * **作用**：告诉可视化工具或控制器，当前这只脚是不是“实”的。
+
+---
+> **🔍 调试检查清单：**
+> * **数组长度对不对？** `ee_motion`, `ee_forces`, `ee_contact` 的长度必须一致，且必须等于机器人的腿数 (`n_ee`)。
+> * **力与接触的对应关系**：
+>     * 如果 `ee_contact[i] == false` (腾空)，那么 `ee_forces[i]` 必须非常接近 0。
+>     * 如果脚在空中却有很大的力，说明优化结果出错了（违反物理定律）。
+---
+### 7. `Optimization & Execution` (构建与求解)
+
+#### 🧠 7.1 构建 NLP 问题 (`ifopt::Problem`)
+**代码核心逻辑：**
+```cpp
+if (msg.optimize || msg.play_initialization) {
+  nlp_ = ifopt::Problem(); // 1. 创建空问题容器
+  
+  // 2. 添加变量 (Variables) - 比如：每条腿每时刻的位置
+  for (auto c : formulation_.GetVariableSets(solution))
+    nlp_.AddVariableSet(c);
+    
+  // 3. 添加约束 (Constraints) - 比如：脚不能穿透地面，关节不能折断
+  for (auto c : formulation_.GetConstraints(solution))
+    nlp_.AddConstraintSet(c);
+    
+  // 4. 添加代价 (Costs) - 比如：能量消耗最小，动作最平滑
+  for (auto c : formulation_.GetCosts())
+    nlp_.AddCostSet(c);
+
+  // 5. 求解！ (Blocking Call)
+  solver_->Solve(nlp_);
+  
+  // 6. 保存结果
+  SaveOptimizationAsRosbag(bag_file, robot_params_msg, msg, false);
+}
+````
+
+**逻辑深度解析：**
+
+  * **`ifopt`**：这是一个 C++ 优化接口库（**I**nterface **f**or **Opt**imization）。它把抽象的物理概念转化为求解器（IPOPT）能懂的数学矩阵。
+  * **组装过程**：
+      * `GetVariableSets`: 提取所有待优化的数值（未知数 $x$）。
+      * `GetConstraints`: 提取所有 $g(x) \leq 0$ 和 $h(x) = 0$。
+      * `GetCosts`: 提取所有需要最小化的 $f(x)$。
+  * **`solver_->Solve(nlp_)`**:
+      * 这是**最耗时**的一行代码。
+      * 程序会在这里“卡住”，直到 IPOPT 找到最优解或者超时。
+      * 一旦这行执行完，`solution` 里的变量值就被更新为**最优轨迹**了。
+
+> **🔍 调试观察：**
+>
+>   * **按 `v` (visualize) 跨过 `Solve` 时**：注意观察终端输出。
+>       * `EXIT: Optimal Solution Found.` -\> 🎉 成功！
+>       * `EXIT: Infeasible Problem.` -\> 💀 失败（通常是约束冲突，比如腿不够长够不着目标）。
+>   * **查看 `nlp_` 规模**：在 `Solve` 之前，可以检查 `nlp_.GetNumberOfOptimizationVariables()`。对于这种问题，变量通常有几千个。
+##### 7.1.1 `NlpFormulation` 深度解析
+
+###### ❓ 疑问：Constraints 和 Costs 是在哪里定义的？
+**答案：** 它们定义在 **`Parameters` 类的构造函数** 中（默认集），并可以在 `TowrRosApp::GetTowrParameters` 中被用户修改。
+
+**常见的约束集合 (`params_.constraints_`)<-src/towr/towr/src/parameters.cc 包括：**
+1.  **`Dynamic`**: 动力学约束 (F=ma)。
+2.  **`EndeffectorRom`**: 运动学范围约束 (Range of Motion, 腿长限制)。
+3.  **`BaseRom`**: 基座活动范围 (通常不开启，除非在受限空间)。
+4.  **`Terrain`**: 地形几何约束 (脚必须落在地形表面 $z=h(x,y)$)。
+5.  **`Force`**: 摩擦锥 (Friction Cone) 和法向力约束 (不能打滑，力必须 > 0)。
+
+**常见的 Cost 集合 (`params_.costs_`) 包括：**
+1.  **`ForcesCost`**: 最小化关节力/力矩 (省电)。
+2.  **`SoftConstraint`**: 针对一些硬约束的松弛惩罚。
+
+###### 🏭 流程图解
+1.  **`GetVariableSets`**: 创建几千个纯数字变量 (Vars)。
+    ↓
+2.  **`SplineHolder`**: 将数字连成平滑的曲线 (Splines)。
+    ↓
+3.  **`GetConstraints`**: 拿着曲线去检查物理定律 (比如检查曲线的二阶导数 $a$ 是否匹配 $F/m$)。
+
+-----
+
+#### 🎬 7.2 结果回放与分析 (`System Calls`)
+
+**代码核心逻辑：**
+
+```cpp
+// 1. 自动回放 (调用命令行)
+if (msg.replay_trajectory || ...) {
+  int success = system(("rosbag play --topics ... " + bag_file).c_str());
+}
+
+// 2. 绘制图表 (调用 rqt_bag)
+if (msg.plot_trajectory) {
+  system(("killall rqt_bag; rqt_bag " + bag_file + "&").c_str());
+}
+```
+
+**逻辑解析：**
+
+  * **`system(...)`**：这是一个 C++ 标准库函数，用来**在终端里执行 shell 命令**。
+  * 它实际上是在你的后台偷偷敲了 `rosbag play towr_trajectory.bag`。
+  * **作用**：
+      * 把刚才算出并保存的 `.bag` 文件播放出来。
+      * 此时，Rviz 订阅了相关话题，就会像看电影一样显示机器人的运动轨迹。
+
+> **🔍 调试观察：**
+>
+>   * **如果 Rviz 没反应**：
+>       * 检查 `bag_file` 路径（默认在 `~/.ros/` 下）。
+>       * 检查终端里有没有报错 `rosbag: command not found`（没装 rosbag）。
+>   * **为什么要 `killall rqt_bag`**：防止你点多次按钮打开无数个绘图窗口，先杀掉旧的再开新的。
+
+-----
+
+```
