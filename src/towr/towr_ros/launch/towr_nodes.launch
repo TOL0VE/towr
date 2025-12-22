@@ -32,13 +32,13 @@
   </node>
 
   <!-- start the actual NLP solver using TOWR -->
-  <!-- <node 
+  <node 
     name="towr_ros_app" 
     pkg="towr_ros" 
     type="towr_ros_app" 
     output="screen"
     launch-prefix="$(arg gdb)"
     >
-  </node> -->
+  </node>
     
 </launch>

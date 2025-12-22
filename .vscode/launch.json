@@ -13,7 +13,7 @@
             "name": "C++: Launch TOWR",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/devel_isolated/towr_ros/lib/towr_ros/towr_ros_app",
+            "program": "${workspaceFolder}/devel_isolated/go1_viz/lib/go1_viz/go1_visualizer_node",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

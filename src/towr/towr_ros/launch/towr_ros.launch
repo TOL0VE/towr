@@ -29,5 +29,8 @@
   
   <!--  Launches the URDF visualizers  --> 
   <include file="$(find xpp_hyq)/launch/all.launch"></include>
+
+    <!--  Launches the URDF visualizers  --> 
+  <!-- <include file="$(find go1_viz)/launch/go1_viz.launch"></include> -->
        
 </launch>

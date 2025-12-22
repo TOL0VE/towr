@@ -11,7 +11,8 @@
         "/home/noix/towr_project/devel_isolated/ifopt/include/**",
         "/opt/ros/melodic/include/**",
         "/home/noix/towr_project/src/towr/towr_ros/include/**",
-        "/usr/include/**"
+        "/usr/include/**",
+        "/home/noix/towr_project/src/go1_viz/src/**"
       ],
       "name": "ROS",
       "intelliSenseMode": "clang-x64",
