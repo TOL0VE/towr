@@ -23,39 +23,39 @@ public:
     // ==========================================
     // 🔴 DEBUG 可视化代码开始
     // ==========================================
-    static ros::NodeHandle nh;
-    static ros::Publisher debug_pub = nh.advertise<visualization_msgs::Marker>("ik_target_debug", 1);
+    // static ros::NodeHandle nh;
+    // static ros::Publisher debug_pub = nh.advertise<visualization_msgs::Marker>("ik_target_debug", 1);
 
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = "go1_des/base"; // 注意：这里假设 pos_B 是相对于 base 的
-    marker.header.stamp = ros::Time::now();
-    marker.ns = "debug_points";
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::SPHERE_LIST; // 画球列表
-    marker.action = visualization_msgs::Marker::ADD;
+    // visualization_msgs::Marker marker;
+    // marker.header.frame_id = "go1_des/base"; // 注意：这里假设 pos_B 是相对于 base 的
+    // marker.header.stamp = ros::Time::now();
+    // marker.ns = "debug_points";
+    // marker.id = 0;
+    // marker.type = visualization_msgs::Marker::SPHERE_LIST; // 画球列表
+    // marker.action = visualization_msgs::Marker::ADD;
     
-    // 设置球的大小 (0.05米 = 5厘米)
-    marker.scale.x = 0.10;
-    marker.scale.y = 0.10;
-    marker.scale.z = 0.10;
+    // // 设置球的大小 (0.05米 = 5厘米)
+    // marker.scale.x = 0.10;
+    // marker.scale.y = 0.10;
+    // marker.scale.z = 0.10;
     
-    // 设置颜色：红色 (Red)
-    marker.color.r = 1.0f;
-    marker.color.g = 0.0f;
-    marker.color.b = 0.0f;
-    marker.color.a = 1.0f; // 不透明
+    // // 设置颜色：红色 (Red)
+    // marker.color.r = 1.0f;
+    // marker.color.g = 0.0f;
+    // marker.color.b = 0.0f;
+    // marker.color.a = 1.0f; // 不透明
 
-    // 把 IK 接收到的点填进去
-    for (const auto& p : pos_B) {
-        geometry_msgs::Point pt;
-        pt.x = p.x();
-        pt.y = p.y();
-        pt.z = p.z();
-        marker.points.push_back(pt);
-    }
+    // // 把 IK 接收到的点填进去
+    // for (const auto& p : pos_B) {
+    //     geometry_msgs::Point pt;
+    //     pt.x = p.x();
+    //     pt.y = p.y();
+    //     pt.z = p.z();
+    //     marker.points.push_back(pt);
+    // }
 
-    // 发布！
-    debug_pub.publish(marker);
+    // // 发布！
+    // debug_pub.publish(marker);
     // ==========================================
     // 🔴 DEBUG 可视化代码结束
     // ==========================================
@@ -79,6 +79,17 @@ public:
       // 2. 解算
       q_vec.push_back(SolveSingleLeg(p_H, ee));
     }
+
+    // ================= DEBUG 打印开始 =================
+    // std::cout << "-------- IK Solution --------" << std::endl;
+    // std::vector<std::string> leg_names = {"LF", "RF", "LH", "RH"};
+    
+    // for (size_t i = 0; i < q_vec.size(); ++i) {
+    //     // .transpose() 将列向量转置为行向量打印，看起来像 [q0, q1, q2]
+    //     std::cout << leg_names[i] << ": " << q_vec[i].transpose() << std::endl;
+    // }
+    // std::cout << "-----------------------------" << std::endl;
+    // ================= DEBUG 打印结束 =================
 
     return xpp::Joints(q_vec);
   }

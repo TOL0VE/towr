@@ -8,7 +8,6 @@ Panels:
         - /Grid1/Offset1
         - /CartesianVisualization1
         - /CartesianVisualization1/Namespaces1
-        - /Go11
         - /Go11/Links1
       Splitter Ratio: 0.4424239993095398
     Tree Height: 950
@@ -165,242 +164,27 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: false
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
-        FL_calf:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FL_calf_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        FL_foot:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FL_hip:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FL_hip_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        FL_thigh:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FL_thigh_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        FR_calf:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FR_calf_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        FR_foot:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FR_hip:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FR_hip_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        FR_thigh:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        FR_thigh_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
         Link Tree Style: Links in Alphabetic Order
-        RL_calf:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RL_calf_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        RL_foot:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RL_hip:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RL_hip_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        RL_thigh:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RL_thigh_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        RR_calf:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RR_calf_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        RR_foot:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RR_hip:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RR_hip_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        RR_thigh:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RR_thigh_rotor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        base:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        camera_chin:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        camera_face:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        camera_laserscan_link_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_laserscan_link_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        camera_optical_chin:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_face:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_rearDown:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_rearDown:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        camera_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        trunk:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        ultraSound_face:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        ultraSound_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        ultraSound_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
       Name: Go1
       Robot Description: /go1_rviz_urdf_robot_description
       TF Prefix: go1_des
       Update Interval: 0
-      Value: true
+      Value: false
       Visual Enabled: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /ik_target_debug
+      Name: Marker
+      Namespaces:
+        debug_points: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -429,7 +213,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 2.9445741176605225
+      Distance: 5.189345836639404
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -444,10 +228,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6947976350784302
+      Pitch: 0.3947977125644684
       Target Frame: <Fixed Frame>
       Value: ThirdPersonFollower (rviz)
-      Yaw: 1.5239932537078857
+      Yaw: 1.2839934825897217
     Saved:
       - Angle: 3.140000104904175
         Class: rviz/TopDownOrtho
@@ -535,5 +319,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1918
-  X: 304
-  Y: 603
+  X: 293
+  Y: 623
