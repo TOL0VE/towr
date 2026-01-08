@@ -214,119 +214,110 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg &msg) {
       return;
     }
 
-    std::string path =
-        "/home/noix/towr_project/src/go1_viz/data/go1_rl_data.csv";
-    mkdir("/home/noix/towr_project/src/go1_viz/data", 0777);
-
+    // 1. 设置路径与高精度
+    std::string path = "/home/o/towr/data/go1_motion.csv";
+    // mkdir("/home/o/towr/data", 0777); // 如果目录不存在需解注
     std::ofstream file(path);
-    if (!file.is_open()) {
-      ROS_ERROR("Can't open file");
-      return;
-    }
-    ROS_INFO("💾 Exporting CORRECTED CSV to: %s", path.c_str());
+    if (!file.is_open()) { ROS_ERROR("Can't open file"); return; }
+    
+    ROS_INFO("💾 Exporting HIGH-PRECISION CSV to: %s", path.c_str());
 
+    // 🔥 关键优化：提高浮点数精度，防止抖动
+    file << std::fixed << std::setprecision(9);
+
+    // 写入 Header (对齐 Isaac Lab 习惯: Quaternion W 在前)
     file << "time,"
-         << "base_x,base_y,base_z,"
-         << "base_quat_x,base_quat_y,base_quat_z,base_quat_w,"
-         << "base_lin_x,base_lin_y,base_lin_z,"
-         << "base_ang_x,base_ang_y,base_ang_z,"
-         << "q0,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,"
-         << "dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7,dq8,dq9,dq10,dq11,"
-         << "contact_LF,contact_RF,contact_LH,contact_RH\n";
+        << "base_x,base_y,base_z,"
+        << "base_quat_w,base_quat_x,base_quat_y,base_quat_z," // 注意顺序 WXYZ
+        << "base_lin_x,base_lin_y,base_lin_z,"
+        << "base_ang_x,base_ang_y,base_ang_z,"
+        << "q0,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,"
+        << "dq0,dq1,dq2,dq3,dq4,dq5,dq6,dq7,dq8,dq9,dq10,dq11\n"; 
 
-    double dt = 0.02;
-    double t = 0.0;
+    // 🔥 关键优化：使用 60Hz (0.0166s) 匹配 Isaac Lab 默认控制频率
+    double dt = 1.0 / 60.0; 
     double T = solution.base_linear_->GetTotalTime();
-
+    
     EulerConverter base_angular(solution.base_angular_);
-
-    // 髋关节偏移 (LF, RF, LH, RH)
-    double hx = 0.1881;
-    double hy = 0.04675;
+    
+    // 髋关节偏移 (Go1)
+    double hx = 0.1881, hy = 0.04675;
     std::vector<Eigen::Vector3d> hip_offsets = {
-        Eigen::Vector3d(hx, hy, 0.0), Eigen::Vector3d(hx, -hy, 0.0),
-        Eigen::Vector3d(-hx, hy, 0.0), Eigen::Vector3d(-hx, -hy, 0.0)};
+        {hx, hy, 0.0}, {hx, -hy, 0.0}, {-hx, hy, 0.0}, {-hx, -hy, 0.0}};
 
-    std::vector<double> q_prev(12, 0.0);
-    bool first_step = true;
+    // 2. 预计算所有点 (为了使用中心差分计算平滑速度)
+    struct FrameData {
+      double t;
+      Eigen::Vector3d p_W, v_W, w_W;
+      Eigen::Quaterniond q_W;
+      std::vector<double> joint_q;
+    };
+    std::vector<FrameData> trajectory;
 
-    while (t <= T + 1e-5) {
-      // 1. 获取基座位姿
-      Eigen::Vector3d base_pos_W = solution.base_linear_->GetPoint(t).p();
-      Eigen::Vector3d base_lin_W = solution.base_linear_->GetPoint(t).v();
-
-      // 【修正点】直接用 Eigen 类型
-      Eigen::Quaterniond base_quat_W = base_angular.GetQuaternionBaseToWorld(t);
-      Eigen::Vector3d base_ang_W = base_angular.GetAngularVelocityInWorld(t);
-
-      // 2. 旋转矩阵
-      Eigen::Matrix3d R_WB = base_quat_W.toRotationMatrix();
-      Eigen::Matrix3d R_BW = R_WB.transpose();
-
-      // 3. 处理每条腿
+    // 循环采样所有位置点
+    for (double t = 0.0; t <= T + 1e-5; t += dt) {
+      FrameData frame;
+      frame.t = t;
+      frame.p_W = solution.base_linear_->GetPoint(t).p();
+      frame.v_W = solution.base_linear_->GetPoint(t).v();
+      
+      // 姿态
+      frame.q_W = base_angular.GetQuaternionBaseToWorld(t);
+      frame.w_W = base_angular.GetAngularVelocityInWorld(t);
+      
+      // IK 解算关节角度 (复用你现有的逻辑)
+      Eigen::Matrix3d R_BW = frame.q_W.toRotationMatrix().transpose();
+      frame.joint_q.resize(12);
+      
       int n_ee = solution.ee_motion_.size();
-      std::vector<double> q_curr_all(12);
-      std::vector<int> contacts(4, 0);
-
       for (int ee_towr = 0; ee_towr < n_ee; ++ee_towr) {
-        int ee_idx = ToXppEndeffector(n_ee, ee_towr).first; // 映射 ID
-
-        // A. 世界坐标
-        Eigen::Vector3d feet_pos_W =
-            solution.ee_motion_.at(ee_towr)->GetPoint(t).p();
-
-        // B. 转到基座坐标 (P_B = R_BW * (P_W - Base_W))
-        Eigen::Vector3d feet_pos_B = R_BW * (feet_pos_W - base_pos_W);
-
-        // C. 转到髋关节坐标
-        Eigen::Vector3d feet_pos_H = feet_pos_B - hip_offsets[ee_idx];
-
-        // D. IK 解算
+        int ee_idx = ToXppEndeffector(n_ee, ee_towr).first;
+        Eigen::Vector3d feet_pos_W = solution.ee_motion_.at(ee_towr)->GetPoint(t).p();
+        Eigen::Vector3d feet_pos_H = R_BW * (feet_pos_W - frame.p_W) - hip_offsets[ee_idx];
         Eigen::VectorXd q_leg = Go1_SolveSingleLeg_Embedded(feet_pos_H, ee_idx);
+        
+        frame.joint_q[3 * ee_idx + 0] = q_leg[0];
+        frame.joint_q[3 * ee_idx + 1] = q_leg[1];
+        frame.joint_q[3 * ee_idx + 2] = q_leg[2];
+      }
+      trajectory.push_back(frame);
+    }
 
-        q_curr_all[3 * ee_idx + 0] = q_leg[0];
-        q_curr_all[3 * ee_idx + 1] = q_leg[1];
-        q_curr_all[3 * ee_idx + 2] = q_leg[2];
-
-        if (solution.phase_durations_.at(ee_towr)->IsContactPhase(t)) {
-          contacts[ee_idx] = 1;
-        }
+    // 3. 写入文件 & 计算关节速度 (中心差分 Central Difference)
+    for (size_t i = 0; i < trajectory.size(); ++i) {
+      const auto& f = trajectory[i];
+      
+      // 计算 dq (Joint Velocity)
+      std::vector<double> dq(12, 0.0);
+      if (i > 0 && i < trajectory.size() - 1) {
+        // 中间点：中心差分 (q[t+1] - q[t-1]) / 2dt -> 最平滑
+        for(int j=0; j<12; ++j) 
+          dq[j] = (trajectory[i+1].joint_q[j] - trajectory[i-1].joint_q[j]) / (2.0 * dt);
+      } else if (i == 0 && trajectory.size() > 1) {
+        // 起点：前向差分
+        for(int j=0; j<12; ++j) 
+          dq[j] = (trajectory[i+1].joint_q[j] - f.joint_q[j]) / dt;
+      } else if (i == trajectory.size() - 1 && i > 0) {
+        // 终点：后向差分
+        for(int j=0; j<12; ++j) 
+          dq[j] = (f.joint_q[j] - trajectory[i-1].joint_q[j]) / dt;
       }
 
-      // 4. 速度差分
-      std::vector<double> dq_curr(12, 0.0);
-      if (!first_step) {
-        for (int i = 0; i < 12; ++i)
-          dq_curr[i] = (q_curr_all[i] - q_prev[i]) / dt;
-      }
-      q_prev = q_curr_all;
-      first_step = false;
-
-      // 5. 写入
-      file << t << ",";
-      file << base_pos_W.x() << "," << base_pos_W.y() << "," << base_pos_W.z()
-           << ",";
-      file << base_quat_W.x() << "," << base_quat_W.y() << ","
-           << base_quat_W.z() << "," << base_quat_W.w() << ",";
-      file << base_lin_W.x() << "," << base_lin_W.y() << "," << base_lin_W.z()
-           << ",";
-      file << base_ang_W.x() << "," << base_ang_W.y() << "," << base_ang_W.z()
-           << ",";
-
-      for (double v : q_curr_all)
-        file << v << ",";
-      for (double v : dq_curr)
-        file << v << ",";
-      for (int c : contacts)
-        file << c << ",";
-
+      // 写入 CSV
+      file << f.t << ","
+          << f.p_W.x() << "," << f.p_W.y() << "," << f.p_W.z() << ","
+          << f.q_W.w() << "," << f.q_W.x() << "," << f.q_W.y() << "," << f.q_W.z() << ","
+          << f.v_W.x() << "," << f.v_W.y() << "," << f.v_W.z() << ","
+          << f.w_W.x() << "," << f.w_W.y() << "," << f.w_W.z() << ",";
+      
+      for (double v : f.joint_q) file << v << ",";
+      for (size_t j = 0; j < 12; ++j) file << dq[j] << (j == 11 ? "" : ","); 
+      
       file << "\n";
-
-      t += dt;
     }
 
     file.close();
-    ROS_INFO("✅ CSV Export Done!");
+    ROS_INFO("✅ CSV Export Done! Frames: %lu, DT: %.4f", trajectory.size(), dt);
   }
 
   if (msg.plot_trajectory) {

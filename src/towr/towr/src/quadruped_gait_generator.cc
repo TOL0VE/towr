@@ -77,7 +77,9 @@ void
 QuadrupedGaitGenerator::SetCombo (Combos combo)
 {
   switch (combo) {
-    case C0: SetGaits({Stand, Walk2, Walk2, Walk2, Walk2E, Stand}); break; // overlap-walk
+    // case C0: SetGaits({Stand, Walk2, Walk2, Walk2, Walk2E, Stand}); break; // overlap-walk
+    // case C0: SetGaits({Stand, Walk2, Walk2, Walk2, Walk2, Walk2E, Stand});
+    case C0: SetGaits({Stand, Walk2, Walk2, Walk2E, Stand});
     case C1: SetGaits({Stand, Run2, Run2, Run2, Run2E, Stand});     break; // fly trot
     case C2: SetGaits({Stand, Run3, Run3, Run3, Run3E, Stand}); break; // pace
     case C3: SetGaits({Stand, Hop1, Hop1, Hop1, Hop1E, Stand}); break; // bound
@@ -181,9 +183,16 @@ QuadrupedGaitGenerator::GetStrideWalk () const
 QuadrupedGaitGenerator::GaitInfo
 QuadrupedGaitGenerator::GetStrideWalkOverlap () const
 {
-  double three    = 0.25;
-  double lateral  = 0.13;
-  double diagonal = 0.13;
+  // double three    = 0.25;
+  // double lateral  = 0.13;
+  // double diagonal = 0.13;
+  // 📉 修改点：把时间缩小 3 倍左右
+  // 总周期从 1.52s 降到约 0.5s
+  // 0.5m/s * 0.5s = 0.25m (非常舒适的步长)
+  
+  double three    = 0.08; // 原来 0.25 -> 改为 0.08 (3脚支撑)
+  double lateral  = 0.05; // 原来 0.13 -> 改为 0.05
+  double diagonal = 0.05; // 原来 0.13 -> 改为 0.05
 
   auto times =
   {
