@@ -1,4 +1,4 @@
-rosparam set robot_description -t "$(rospack find go1_description)/urdf/go2.urdf"
+rosparam set robot_description -t "$(rospack find go2_description)/urdf/go2_description.urdf"
 rosrun robot_state_publisher robot_state_publisher
 rviz
-rosrun go1_viz csv_player.py
+rosrun go2_viz csv_player.py

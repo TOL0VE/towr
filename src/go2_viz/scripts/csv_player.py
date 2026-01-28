@@ -10,7 +10,7 @@ import sys
 import os
 
 def play_csv(csv_path):
-    rospy.init_node('go1_csv_player')
+    rospy.init_node('go2_csv_player')
     
     # 1. 设置 Publisher
     # 发布关节角度
@@ -110,7 +110,7 @@ def play_csv(csv_path):
     rospy.loginfo("播放结束！")
 
 if __name__ == '__main__':
-    default_path = "/home/noix/towr_project/src/go1_viz/data/go1_rl_data.csv"
+    default_path = "/home/o/towr/data/Left.csv"
     
     # 支持命令行参数传入路径
     path = sys.argv[1] if len(sys.argv) > 1 else default_path

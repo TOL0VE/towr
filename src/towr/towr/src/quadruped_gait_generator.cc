@@ -183,16 +183,22 @@ QuadrupedGaitGenerator::GetStrideWalk () const
 QuadrupedGaitGenerator::GaitInfo
 QuadrupedGaitGenerator::GetStrideWalkOverlap () const
 {
-  // double three    = 0.25;
-  // double lateral  = 0.13;
-  // double diagonal = 0.13;
-  // 📉 修改点：把时间缩小 3 倍左右
-  // 总周期从 1.52s 降到约 0.5s
-  // 0.5m/s * 0.5s = 0.25m (非常舒适的步长)
+  // 📉 之前的设置:
+  // double three    = 0.08; 
+  // double lateral  = 0.05; 
+  // double diagonal = 0.05; 
+  // 总周期 ≈ 0.52s -> 太快了，导致机器狗必须"跳"着走才能跟上节奏
+
+  // 📈 修改为"猫步" (Cat-like Walk) 设置:
+  // 目标: 更加平滑，重心起伏小
+  // 总周期: 0.12*4 + 0.13*4 = 1.0s (标准行走频率 1Hz)
   
-  double three    = 0.08; // 原来 0.25 -> 改为 0.08 (3脚支撑)
-  double lateral  = 0.05; // 原来 0.13 -> 改为 0.05
-  double diagonal = 0.05; // 原来 0.13 -> 改为 0.05
+  double three    = 0.12; // 增加四脚着地时间，保证切换时的稳定性
+  double lateral  = 0.13; // 给予足够的时间摆动腿，减少瞬间加速度
+  double diagonal = 0.13; 
+
+  // 注意：如果你觉得 1.0s 走得太慢，可以按比例缩小，
+  // 但建议不要低于 0.8s (例如 three=0.1, others=0.1)
 
   auto times =
   {
@@ -201,6 +207,10 @@ QuadrupedGaitGenerator::GetStrideWalkOverlap () const
       three, lateral, three,
       diagonal,
   };
+  
+  // 这里的 phase_contacts 定义了脚的接触顺序
+  // 如果你的 bB_, bb_ 等宏定义是标准的，这部分逻辑通常不需要动
+  // 它们决定了是 "左前->右后->右前->左后" 这种顺序
   auto phase_contacts =
   {
       bB_, bb_, Bb_,
