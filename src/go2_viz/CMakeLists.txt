@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(go1_viz)
+project(go2_viz)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES go1_viz
+#  LIBRARIES go2_viz
 #  CATKIN_DEPENDS roscpp xpp_msgs xpp_states xpp_vis
 #  DEPENDS system_lib
 )
@@ -124,7 +124,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/go1_viz.cpp
+#   src/${PROJECT_NAME}/go2_viz.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -135,8 +135,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/go1_viz_node.cpp)
-add_executable(go1_visualizer_node src/go1_visualizer_node.cc)
+# add_executable(${PROJECT_NAME}_node src/go2_viz_node.cpp)
+add_executable(go2_visualizer_node src/go2_visualizer_node.cc)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -152,7 +152,7 @@ add_executable(go1_visualizer_node src/go1_visualizer_node.cc)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(go1_visualizer_node
+target_link_libraries(go2_visualizer_node
   ${catkin_LIBRARIES}
 )
 
@@ -203,7 +203,7 @@ target_link_libraries(go1_visualizer_node
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_go1_viz.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_go2_viz.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -32,5 +32,8 @@
 
     <!--  Launches the URDF visualizers  --> 
   <include file="$(find go1_viz)/launch/go1_viz.launch"></include>
+
+      <!--  Launches the URDF visualizers  --> 
+  <include file="$(find go2_viz)/launch/go2_viz.launch"></include>
        
 </launch>

@@ -7,9 +7,10 @@ Panels:
         - /Global Options1
         - /Grid1/Offset1
         - /CartesianVisualization1/Namespaces1
-        - /Go11/Links1
+        - /Go11
+        - /RobotModel1
       Splitter Ratio: 0.4424239993095398
-    Tree Height: 950
+    Tree Height: 776
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -163,9 +164,33 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: false
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: Go1
+      Robot Description: /go1_rviz_urdf_robot_description
+      TF Prefix: go1_des
+      Update Interval: 0
+      Value: false
+      Visual Enabled: true
+    - Class: rviz/Marker
+      Enabled: false
+      Marker Topic: /ik_target_debug
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -175,6 +200,15 @@ Visualization Manager:
           Show Trail: false
           Value: true
         FL_calf_rotor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        FL_calflower:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FL_calflower1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -193,7 +227,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         FL_thigh:
           Alpha: 1
           Show Axes: false
@@ -203,13 +236,21 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         FR_calf:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
         FR_calf_rotor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        FR_calflower:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        FR_calflower1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -228,13 +269,21 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         FR_thigh:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
         FR_thigh_rotor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        Head_lower:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Head_upper:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -246,6 +295,15 @@ Visualization Manager:
           Show Trail: false
           Value: true
         RL_calf_rotor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RL_calflower:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RL_calflower1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -264,7 +322,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         RL_thigh:
           Alpha: 1
           Show Axes: false
@@ -274,13 +331,21 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         RR_calf:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
         RR_calf_rotor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RR_calflower:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RR_calflower1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -299,7 +364,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         RR_thigh:
           Alpha: 1
           Show Axes: false
@@ -309,104 +373,29 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         base:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        camera_chin:
+        front_camera:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: false
-        camera_face:
+        imu:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: false
-        camera_laserscan_link_left:
+        radar:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        camera_laserscan_link_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        camera_optical_chin:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_face:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_rearDown:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_optical_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_rearDown:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        camera_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        imu_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        trunk:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        ultraSound_face:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        ultraSound_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-        ultraSound_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: false
-      Name: Go1
-      Robot Description: /go1_rviz_urdf_robot_description
-      TF Prefix: go1_des
+      Name: RobotModel
+      Robot Description: /go2_rviz_urdf_robot_description
+      TF Prefix: go2_des
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /ik_target_debug
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -435,25 +424,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 4.008418083190918
+      Distance: 2.591904401779175
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.8522983193397522
-        Y: 1.5736801624298096
-        Z: 7.152557373046875e-7
+        X: 0.6728550791740417
+        Y: 0.4461890459060669
+        Z: 0
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.0247966051101685
+      Pitch: 0.649796724319458
       Target Frame: <Fixed Frame>
       Value: ThirdPersonFollower (rviz)
-      Yaw: 1.8503985404968262
+      Yaw: 1.4903985261917114
     Saved:
       - Angle: 3.140000104904175
         Class: rviz/TopDownOrtho
@@ -527,11 +516,11 @@ Visualization Manager:
         Yaw: 5.114999771118164
 Window Geometry:
   Displays:
-    collapsed: true
-  Height: 1173
-  Hide Left Dock: true
+    collapsed: false
+  Height: 999
+  Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd0000000400000000000002f80000043ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed0000024c00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073000000003b0000043f000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000012f00000432fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000004300000432000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000003bf0000003efc0100000002fb0000000800540069006d00650000000000000003bf0000042700fffffffb0000000800540069006d006501000000000000045000000000000000000000077e0000043f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000002f800000391fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed0000024c00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b00000391000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000012f00000432fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000004300000432000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000003bf0000003efc0100000002fb0000000800540069006d00650000000000000003bf0000042700fffffffb0000000800540069006d00650100000000000004500000000000000000000004760000039100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -540,6 +529,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1918
-  X: 467
-  Y: 602
+  Width: 1908
+  X: 2560
+  Y: 0

@@ -12,7 +12,7 @@
 #include <xpp_vis/cartesian_joint_converter.h>
 #include <xpp_vis/urdf_visualizer.h>
 
-// 引入你的 Go1 IK 头文件
+// 引入你的 Go2 IK 头文件
 #include "go2_inverse_kinematics.h"
 
 using namespace xpp;
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
   // =============================================================
   
   // 实例化你的 Go2 IK 求解器
-  auto go2_ik = std::make_shared<Go1InverseKinematics>();
+  auto go2_ik = std::make_shared<Go2InverseKinematics>();
 
   // 创建转换器
   // 参数1: IK 求解器
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
       tf_prefix
   );
 
-  std::cout << "Go1 Visualizer (Converter + Publisher) is running..." << std::endl;
+  std::cout << "Go2 Visualizer (Converter + Publisher) is running..." << std::endl;
 
   // 开始循环 (Converter 和 Visualizer 都在这里面通过回调工作)
   ::ros::spin();

@@ -99,9 +99,12 @@ Eigen::VectorXd SolveSingleLeg(const Vector3d& p, int leg_id) const
   {
     Eigen::VectorXd q(3);
 
-    const double l0 = 0.08;
-    const double l1 = 0.213;
-    const double l2 = 0.213;
+    // ========================================================
+    // 【修改点】：根据 Go2 URDF 更新参数
+    // ========================================================
+    const double l0 = 0.0955; // 原为 0.08，Go2 实测为 0.0955 
+    const double l1 = 0.213;  // Go2 大腿长度 
+    const double l2 = 0.213;  // Go2 小腿长度 
 
     bool is_right = (leg_id == 1 || leg_id == 3);
 
@@ -110,11 +113,13 @@ Eigen::VectorXd SolveSingleLeg(const Vector3d& p, int leg_id) const
     // ========================================================
     double l_yz = std::sqrt(p.y()*p.y() + p.z()*p.z());
     double lyz_ratio = l0 / l_yz;
+    
+    // 保护：防止 asin 输入越界
     if (lyz_ratio > 1.0) lyz_ratio = 1.0;
     if (lyz_ratio < -1.0) lyz_ratio = -1.0;
 
     double q0_geom = std::asin(lyz_ratio) + std::atan2(std::abs(p.z()), std::abs(p.y()));
-    q[0] = q0_geom - 1.57079632679;
+    q[0] = q0_geom - 1.57079632679; // -90度偏移
 
     if (!is_right) q[0] = -q[0];
 
@@ -135,8 +140,7 @@ Eigen::VectorXd SolveSingleLeg(const Vector3d& p, int leg_id) const
     if (cos_q2 > 1.0) cos_q2 = 1.0;
     if (cos_q2 < -1.0) cos_q2 = -1.0;
 
-    // 【修改点 A】：改为负值
-    // 之前正值导致了“向前弯”，现在改回负值
+    // 【保持您的修改】：Go2 膝盖通常向后弯曲 (Config不同可能定义不同，保持您的负值逻辑)
     q[2] = - (M_PI - std::acos(cos_q2)); 
 
 
@@ -148,7 +152,6 @@ Eigen::VectorXd SolveSingleLeg(const Vector3d& p, int leg_id) const
 
     double l_proj_corrected = std::sqrt(l_proj_sq);
     double phi = std::atan2(p.x(), l_proj_corrected);
-
 
     q[1] = -phi + beta;
 

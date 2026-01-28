@@ -72,6 +72,7 @@ struct RobotModel {
                Hyq,     ///< four-legged robot from IIT
                Anymal,  ///< four-legged robot from Anybotics
                Go1,
+               Go2,
                ROBOT_COUNT };
 
 
@@ -89,7 +90,8 @@ const static std::map<RobotModel::Robot, std::string> robot_names =
   {RobotModel::Biped,   "Biped"},
   {RobotModel::Hyq,     "Hyq"},
   {RobotModel::Anymal,  "Anymal"},
-  {RobotModel::Go1,  "Go1"}
+  {RobotModel::Go1,  "Go1"},
+  {RobotModel::Go2,  "Go2"}
 };
 
 } /* namespace towr */

@@ -77,69 +77,66 @@ BaseState TowrRosInterface::GetGoalState(const TowrCommandMsg &msg) const {
 
 Eigen::VectorXd Go1_SolveSingleLeg_Embedded(const Eigen::Vector3d &p,
                                             int leg_id) {
-  Eigen::VectorXd q(3);
+    Eigen::VectorXd q(3);
 
-  const double l0 = 0.08;
-  const double l1 = 0.213;
-  const double l2 = 0.213;
+    // ========================================================
+    // 【修改点】：根据 Go2 URDF 更新参数
+    // ========================================================
+    const double l0 = 0.0955; // 原为 0.08，Go2 实测为 0.0955 
+    const double l1 = 0.213;  // Go2 大腿长度 
+    const double l2 = 0.213;  // Go2 小腿长度 
 
-  bool is_right = (leg_id == 1 || leg_id == 3);
+    bool is_right = (leg_id == 1 || leg_id == 3);
 
-  // ========================================================
-  // 1. 侧展 q[0]
-  // ========================================================
-  double l_yz = std::sqrt(p.y() * p.y() + p.z() * p.z());
-  double lyz_ratio = l0 / l_yz;
-  if (lyz_ratio > 1.0)
-    lyz_ratio = 1.0;
-  if (lyz_ratio < -1.0)
-    lyz_ratio = -1.0;
+    // ========================================================
+    // 1. 侧展 q[0] (保持不变)
+    // ========================================================
+    double l_yz = std::sqrt(p.y()*p.y() + p.z()*p.z());
+    double lyz_ratio = l0 / l_yz;
+    
+    // 保护：防止 asin 输入越界
+    if (lyz_ratio > 1.0) lyz_ratio = 1.0;
+    if (lyz_ratio < -1.0) lyz_ratio = -1.0;
 
-  double q0_geom =
-      std::asin(lyz_ratio) + std::atan2(std::abs(p.z()), std::abs(p.y()));
-  q[0] = q0_geom - 1.57079632679;
+    double q0_geom = std::asin(lyz_ratio) + std::atan2(std::abs(p.z()), std::abs(p.y()));
+    q[0] = q0_geom - 1.57079632679; // -90度偏移
 
-  if (!is_right)
-    q[0] = -q[0];
+    if (!is_right) q[0] = -q[0];
 
-  // ========================================================
-  // 2. 准备计算
-  // ========================================================
-  double l_proj_sq = l_yz * l_yz - l0 * l0;
-  if (l_proj_sq < 0)
-    l_proj_sq = 0;
 
-  double l_total_sq = p.x() * p.x() + l_proj_sq;
-  double l_total = std::sqrt(l_total_sq);
+    // ========================================================
+    // 2. 准备计算
+    // ========================================================
+    double l_proj_sq = l_yz*l_yz - l0*l0;
+    if (l_proj_sq < 0) l_proj_sq = 0;
+    
+    double l_total_sq = p.x()*p.x() + l_proj_sq;
+    double l_total = std::sqrt(l_total_sq);
 
-  // ========================================================
-  // 3. 膝盖 q[2]
-  // ========================================================
-  double cos_q2 = (l1 * l1 + l2 * l2 - l_total_sq) / (2 * l1 * l2);
-  if (cos_q2 > 1.0)
-    cos_q2 = 1.0;
-  if (cos_q2 < -1.0)
-    cos_q2 = -1.0;
+    // ========================================================
+    // 3. 膝盖 q[2] 
+    // ========================================================
+    double cos_q2 = (l1*l1 + l2*l2 - l_total_sq) / (2 * l1 * l2);
+    if (cos_q2 > 1.0) cos_q2 = 1.0;
+    if (cos_q2 < -1.0) cos_q2 = -1.0;
 
-  // 【修改点 A】：改为负值
-  // 之前正值导致了“向前弯”，现在改回负值
-  q[2] = -(M_PI - std::acos(cos_q2));
+    // 【保持您的修改】：Go2 膝盖通常向后弯曲 (Config不同可能定义不同，保持您的负值逻辑)
+    q[2] = - (M_PI - std::acos(cos_q2)); 
 
-  // ========================================================
-  // 4. 大腿 q[1]
-  // ========================================================
-  double beta =
-      std::acos((l_total_sq + l1 * l1 - l2 * l2) / (2 * l_total * l1));
-  if (std::isnan(beta))
-    beta = 0.0;
 
-  double l_proj_corrected = std::sqrt(l_proj_sq);
-  double phi = std::atan2(p.x(), l_proj_corrected);
+    // ========================================================
+    // 4. 大腿 q[1] 
+    // ========================================================
+    double beta = std::acos((l_total_sq + l1*l1 - l2*l2) / (2 * l_total * l1));
+    if (std::isnan(beta)) beta = 0.0;
 
-  q[1] = -phi + beta;
+    double l_proj_corrected = std::sqrt(l_proj_sq);
+    double phi = std::atan2(p.x(), l_proj_corrected);
 
-  return q;
-}
+    q[1] = -phi + beta;
+
+    return q;
+  }
 
 std::vector<double>
 Go1_GetAllJoints(const std::vector<Eigen::Vector3d> &feet_pos) {
@@ -215,7 +212,7 @@ void TowrRosInterface::UserCommandCallback(const TowrCommandMsg &msg) {
     }
 
     // 1. 设置路径与高精度
-    std::string path = "/home/o/towr/data/go1_motion.csv";
+    std::string path = "/home/o/towr/data/go2_motion.csv";
     // mkdir("/home/o/towr/data", 0777); // 如果目录不存在需解注
     std::ofstream file(path);
     if (!file.is_open()) { ROS_ERROR("Can't open file"); return; }
