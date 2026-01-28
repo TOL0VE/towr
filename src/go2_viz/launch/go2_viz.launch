@@ -1,0 +1,8 @@
+<launch>
+  <param name="go1_rviz_urdf_robot_description" command="$(find xacro)/xacro --inorder '$(find go1_description)/urdf/go2.urdf'"/>
+
+  <node name="go1_visualizer" pkg="go1_viz" type="go1_visualizer_node" output="screen">
+     </node>
+
+  
+</launch>

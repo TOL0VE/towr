@@ -1,0 +1,4 @@
+rosparam set robot_description -t "$(rospack find go1_description)/urdf/go2.urdf"
+rosrun robot_state_publisher robot_state_publisher
+rviz
+rosrun go1_viz csv_player.py
