@@ -112,7 +112,12 @@ def main():
 
     # 2. 初始化 Pinocchio 模型 (只做一次)
     print(f"🤖 正在加载模型: {URDF_FILENAME} ...")
-    model = pin.buildModelFromUrdf(URDF_FILENAME)
+    try:
+        model = pin.buildModelFromUrdf(URDF_FILENAME, pin.JointModelFreeFlyer())
+    except AttributeError:
+        # 如果你环境里 pinocchio 版本较老，可能需要用这个写法，但大概率上面那个就行
+        print("⚠️ 尝试使用旧版 API 加载...")
+        model = pin.buildModelFromUrdf(URDF_FILENAME, pin.JointModelFreeFlyer())
     data = model.createData()
     
     # 缓存 Body ID
