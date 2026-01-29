@@ -6,7 +6,7 @@ import glob
 import tqdm  # 建议安装 tqdm 显示进度条: pip install tqdm
 
 # ==================== ⚙️ 配置区域 ====================
-URDF_FILENAME = "go1.urdf"  # 确保 URDF 文件在同级目录
+URDF_FILENAME = "go2_description.urdf"  # 确保 URDF 文件在同级目录
 # 关节名称 (必须严格对应 URDF)
 DOF_NAMES = [
     "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint",
@@ -16,26 +16,45 @@ DOF_NAMES = [
 ]
 # 需要导出的 Body 名称 (用于 AMP 观测)
 BODY_NAMES = [
-    "trunk", 
+    "base", 
     "FL_hip", "FL_thigh", "FL_calf", "FL_foot",
     "FR_hip", "FR_thigh", "FR_calf", "FR_foot",
     "RL_hip", "RL_thigh", "RL_calf", "RL_foot",
     "RR_hip", "RR_thigh", "RR_calf", "RR_foot"
 ]
 # ====================================================
+# 丢弃开头/结尾比例（例如 0.2 表示丢弃 20% 开头 + 20% 结尾）
+TRIM_RATIO = 0.2
 
 def convert_single_file(csv_path, model, data, body_indices):
     """处理单个 CSV 文件并返回处理好的数据字典"""
     try:
         df = pd.read_csv(csv_path)
-        
+
         # 0. 基础检查
         required_cols = ["base_x", "q0", "dq0", "base_quat_w"]
         if not all(col in df.columns for col in required_cols):
             print(f"⚠️ 跳过 {csv_path}: 缺少关键列，可能不是运动数据。")
             return None
 
+        # 0.5 丢弃开头/结尾 20%，仅保留中间 60%
+        n_total = len(df)
+        if n_total < 2:
+            print(f"⚠️ 跳过 {csv_path}: 帧数不足。")
+            return None
+        trim_n = int(n_total * TRIM_RATIO)
+        start = trim_n
+        end = n_total - trim_n
+        if end <= start:
+            print(f"⚠️ 跳过 {csv_path}: 丢弃比例过大，剩余帧不足。")
+            return None
+        if trim_n > 0:
+            df = df.iloc[start:end].reset_index(drop=True)
+
         # 1. 计算 FPS
+        if len(df) < 2:
+            print(f"⚠️ 跳过 {csv_path}: 处理后帧数不足。")
+            return None
         dt = df["time"][1] - df["time"][0]
         fps = 1.0 / dt
         n_frames = len(df)
